@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>🗓 تقویم شمسی</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg1:#eaf7ee; --bg2:#e6efff; --card:#fff; --text:#1e293b; --muted:#64748b;
+  --accent:#7c3aed; --soft:#ede9fe; --holiday:#ef4444; --line:#e2e8f0;
+  --shadow:0 4px 18px rgba(30,41,59,.08);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg1:#0f172a;--bg2:#111827;--card:#1e293b;--text:#f1f5f9;--muted:#94a3b8;
+        --accent:#a78bfa;--soft:#312e5f55;--holiday:#f87171;--line:#334155;
+        --shadow:0 4px 18px rgba(0,0,0,.35);}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:'Vazirmatn','Segoe UI',Tahoma,sans-serif;color:var(--text);
+     background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;
+     display:flex;justify-content:center;padding:14px 12px 28px}
+.wrap{width:100%;max-width:440px}
+.top{display:flex;align-items:center;margin:4px 2px 12px}
+.top h1{font-size:19px;margin:0;flex:1}
+.badge{font-size:11px;background:var(--accent);color:#fff;padding:3px 10px;border-radius:999px}
+.card{background:var(--card);border-radius:20px;box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
+.monthbar{display:flex;align-items:center;margin-bottom:6px}
+.nav{width:42px;height:42px;border:none;border-radius:12px;background:transparent;
+     font-size:22px;color:var(--accent);cursor:pointer}
+.nav:active{background:var(--soft)}
+.monthbar h2{flex:1;text-align:center;margin:0;font-size:17px}
+.todaybtn{border:none;background:var(--soft);color:var(--accent);font-family:inherit;
+     font-size:12px;padding:8px 16px;border-radius:999px;cursor:pointer;margin:0 auto 10px;display:block}
+.week,.grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.week div{text-align:center;font-size:12px;color:var(--muted);padding:5px 0}
+.grid{gap:2px}
+.day{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+     border:none;background:transparent;border-radius:14px;cursor:pointer;
+     font-family:inherit;font-size:15px;color:var(--text)}
+.day:active{background:var(--soft)}
+.day.holi{color:var(--holiday)}
+.day.ev::after{content:'';position:absolute;bottom:6px;width:5px;height:5px;
+     border-radius:50%;background:var(--holiday)}
+.day.sel{background:var(--accent);color:#fff}
+.day.sel.ev::after{background:#fff}
+.day.tdy{font-weight:800;box-shadow:inset 0 0 0 2px var(--accent)}
+.day.sel.tdy{box-shadow:none}
+#details{display:none}
+.d-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.d-head .big{font-size:26px;font-weight:800}
+.d-head .sub{color:var(--muted);font-size:13px}
+.row{display:flex;justify-content:space-between;padding:8px 2px;
+     border-bottom:1px dashed var(--line);font-size:14px}
+.row:last-child{border:none}
+.row .k{color:var(--muted)}
+.evs{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.evs div{background:var(--soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-size:13px}
+.evs div.holi{background:#fee2e2;color:#dc2626}
+@media (prefers-color-scheme:dark){.evs div.holi{background:#7f1d1d;color:#fca5a5}}
+.cnum{font-size:18px;font-weight:800;letter-spacing:1px;margin-top:4px}
+.copybtn{width:100%;margin-top:12px;border:none;background:var(--accent);color:#fff;
+     font-family:inherit;font-size:14px;padding:12px;border-radius:14px;cursor:pointer}
+.copybtn:active{filter:brightness(.92)}
+.foot{text-align:center;color:var(--muted);font-size:11px;line-height:1.9}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+     background:var(--accent);color:#fff;padding:10px 20px;border-radius:999px;font-size:13px;
+     opacity:0;transition:.25s;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🗓 تقویم شمسی</h1><span class="badge">گرافیکی</span></div>
+
+  <div class="card">
+    <div class="monthbar">
+      <button class="nav" onclick="nav(-1)">‹</button>
+      <h2 id="mlabel"></h2>
+      <button class="nav" onclick="nav(1)">›</button>
+    </div>
+    <button class="todaybtn" onclick="goToday()">📍 امروز</button>
+    <div class="week" id="week"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="card" id="details"></div>
+
+  <div class="card">
+    <div style="font-size:13px;color:var(--muted)">💳 شماره کارت</div>
+    <div class="cnum" id="cardnum"></div>
+    <button class="copybtn" onclick="copyCard()">📋 کپی شماره کارت</button>
+  </div>
+
+  <div class="foot">🌙 تاریخ‌های قمری ممکن است با تقویم رسمی یک روز اختلاف داشته باشند.</div>
+</div>
+<div id="toast">کپی شد ✓</div>
+
+<script>
+/* ── داده‌ها ── */
+const CARD="6037997423574640";
+const MONTHS=["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"];
+const HMONTHS=["محرم","صفر","ربیع‌الاول","ربیع‌الثانی","جمادی‌الاول","جمادی‌الثانی","رجب","شعبان","رمضان","شوال","ذی‌القعده","ذی‌الحجه"];
+const WD=["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنج‌شنبه","جمعه"];
+const WDS=["ش","ی","د","س","چ","پ","ج"];
+const FA="۰۱۲۳۴۵۶۷۸۹";
+const fa=n=>String(n).replace(/\d/g,d=>FA[d]);
+const p2=n=>String(n).padStart(2,"0");
+
+const SOLAR={"1,1":"جشن نوروز — تعطیل","1,2":"عید نوروز — تعطیل","1,3":"عید نوروز — تعطیل",
+"1,4":"عید نوروز — تعطیل","1,12":"روز جمهوری اسلامی — تعطیل","1,13":"روز طبیعت — تعطیل",
+"2,2":"روز زمین پاک","2,10":"روز ملی خلیج فارس","2,25":"روز بزرگداشت فردوسی","2,29":"روز ارتش",
+"3,14":"رحلت امام خمینی (ره) — تعطیل","3,15":"قیام ۱۵ خرداد — تعطیل","3,28":"روز بسیج مستضعفین",
+"3,29":"روز وحدت حوزه و دانشگاه","6,1":"روز پزشک","6,27":"روز شعر و ادب پارسی","7,8":"روز بزرگداشت مولوی",
+"7,20":"روز بزرگداشت حافظ","8,24":"روز کتاب و کتاب‌خوانی","9,16":"روز دانشجو",
+"11,22":"پیروزی انقلاب اسلامی — تعطیل","12,9":"روز شوراها","12,29":"ملی شدن صنعت نفت — تعطیل"};
+
+const HIJRI={"1,1":"آغاز سال نو هجری قمری","1,9":"تاسوعای حسینی — تعطیل","1,10":"عاشورای حسینی — تعطیل",
+"2,20":"اربعین حسینی — تعطیل","2,28":"رحلت رسول اکرم (ص) و شهادت امام حسن مجتبی (ع) — تعطیل",
+"3,8":"شهادت امام حسن عسکری (ع) — تعطیل","3,17":"ولادت رسول اکرم (ص) و امام صادق (ع) — تعطیل",
+"5,3":"شهادت حضرت فاطمه زهرا (س) — تعطیل","6,13":"ولادت امام علی (ع) — تعطیل",
+"7,27":"مبعث رسول اکرم (ص) — تعطیل","8,15":"ولادت حضرت ولیعصر (عج) — تعطیل",
+"9,21":"شهادت امام علی (ع) — تعطیل","10,1":"عید سعید فطر — تعطیل","10,2":"تعطیل عید سعید فطر",
+"10,25":"شهادت امام صادق (ع) — تعطیل","12,10":"عید سعید قربان — تعطیل","12,18":"عید سعید غدیر خم — تعطیل"};
+
+/* ── تبدیل شمسی ↔ میلادی (الگوریتم jalaali-js) ── */
+const div=(a,b)=>~~(a/b), mod=(a,b)=>a-~~(a/b)*b;
+const BREAKS=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+function jalCal(jy,noLeap){
+  let bl=BREAKS.length,gy=jy+621,leapJ=-14,jp=BREAKS[0],jm,jump,leap,leapG,march,n,i;
+  for(i=1;i<bl;i++){jm=BREAKS[i];jump=jm-jp;if(jy<jm)break;
+    leapJ+=div(jump,33)*8+div(mod(jump,33),4);jp=jm;}
+  n=jy-jp;
+  leapJ+=div(n,33)*8+div(mod(n,33)+3,4);
+  if(mod(jump,33)===4&&jump-n===4)leapJ++;
+  leapG=div(gy,4)-div((div(gy,100)+1)*3,4)-150;
+  march=20+leapJ-leapG;
+  if(!noLeap){if(jump-n<6)n=n-jump+div(jump+4,33)*33;
+    leap=mod(mod(n+1,33)-1,4);if(leap===-1)leap=4;}
+  return{leap,gy,march};
+}
+const g2d=(gy,gm,gd)=>{let d=div((gy+div(gm-8,6)+100100)*1461,4)+div(153*mod(gm+9,12)+2,5)+gd-34840408;
+  return d-div(div(gy+100100+div(gm-8,6),100)*3,4)+752;};
+const d2g=jdn=>{let j=4*jdn+139361631;j+=div(div(4*jdn+183187720,146097)*3,4)*4-3908;
+  let i=div(mod(j,1461),4)*5+308;
+  return{gy:div(j,1461)-100100+div(8-(mod(div(i,153),12)+1),6),
+         gm:mod(div(i,153),12)+1,gd:div(mod(i,153),5)+1};};
+const j2d=(jy,jm,jd)=>{const r=jalCal(jy,true);
+  return g2d(r.gy,3,r.march)+(jm-1)*31-div(jm,7)*(jm-7)+jd-1;};
+const d2j=jdn=>{const gy=d2g(jdn).gy;let jy=gy-621;const r=jalCal(jy,false),jdn1f=g2d(gy,3,r.march);
+  let k=jdn-jdn1f;
+  if(k>=0){if(k<=185)return{jy,jm:1+div(k,31),jd:mod(k,31)+1};k-=186;}
+  else{jy--;k+=179;if(r.leap===1)k++;}
+  return{jy,jm:7+div(k,30),jd:mod(k,30)+1};};
+const toJalaali=d=>d2j(g2d(d.getFullYear(),d.getMonth()+1,d.getDate()));
+const toGregorian=(jy,jm,jd)=>d2g(j2d(jy,jm,jd));
+const monthLen=(jy,jm)=>jm<=6?31:jm<=11?30:(jalCal(jy).leap===0?30:29);
+
+/* ── تاریخ قمری با Intl ── */
+function hijriOf(date){
+  try{
+    const f=new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn",
+      {day:"numeric",month:"numeric",year:"numeric"});
+    const p=f.formatToParts(date);
+    const g=t=>+(p.find(x=>x.type===t).value.replace(/\D/g,""));
+    return{d:g("day"),m:g("month"),y:g("year")};
+  }catch(e){return null;}
+}
+function eventsOf(jy,jm,jd){
+  const out=[],s=SOLAR[jm+","+jd];
+  if(s)out.push({t:s,h:true});
+  const g=toGregorian(jy,jm,jd),dt=new Date(g.gy,g.gm-1,g.gd),h=hijriOf(dt);
+  if(h){
+    const t=HIJRI[h.m+","+h.d];
+    if(t)out.push({t:t,h:t.includes("تعطیل")});
+    const tm=new Date(dt);tm.setDate(tm.getDate()+1);
+    const h2=hijriOf(tm);
+    if(h.m===2&&h2&&h2.m===3&&h2.d===1)out.push({t:"شهادت حضرت امام رضا (ع) — تعطیل",h:true});
+  }
+  return out;
+}
+
+/* ── رندر ── */
+const T=toJalaali(new Date());
+let S={jy:T.jy,jm:T.jm,jd:T.jd};
+const tg=window.Telegram&&window.Telegram.WebApp;
+if(tg){tg.ready();tg.expand();}
+
+function render(){
+  document.getElementById("mlabel").textContent=`📅 ${MONTHS[S.jm-1]} ${fa(S.jy)}`;
+  const g1=toGregorian(S.jy,S.jm,1);
+  const off=(new Date(g1.gy,g1.gm-1,g1.gd).getDay()+1)%7;
+  const grid=document.getElementById("grid");grid.innerHTML="";
+  for(let i=0;i<off;i++)grid.appendChild(document.createElement("div"));
+  for(let d=1;d<=monthLen(S.jy,S.jm);d++){
+    const b=document.createElement("button");b.className="day";
+    const g=toGregorian(S.jy,S.jm,d),dt=new Date(g.gy,g.gm-1,g.gd);
+    const wd=(dt.getDay()+1)%7,evs=eventsOf(S.jy,S.jm,d);
+    if(wd===6)b.classList.add("holi");
+    if(evs.length)b.classList.add("ev");
+    if(d===S.jd)b.classList.add("sel");
+    if(S.jy===T.jy&&S.jm===T.jm&&d===T.jd)b.classList.add("tdy");
+    b.textContent=fa(d);
+    b.onclick=()=>{S.jd=d;if(tg)tg.HapticFeedback&&tg.HapticFeedback.selectionChanged();render();};
+    grid.appendChild(b);
+  }
+  showDetails();
+}
+function showDetails(){
+  const g=toGregorian(S.jy,S.jm,S.jd),dt=new Date(g.gy,g.gm-1,g.gd);
+  const wd=(dt.getDay()+1)%7,h=hijriOf(dt);
+  let evs=eventsOf(S.jy,S.jm,S.jd);
+  if(wd===6)evs=[{t:"😴 جمعه — تعطیل هفتگی",h:true},...evs];
+  let html=`<div class="d-head"><div class="big">${WD[wd]} ${fa(S.jd)} ${MONTHS[S.jm-1]}</div>
+    <div class="sub">${fa(S.jy)}</div></div>
+    <div class="row"><span class="k">🔢 تاریخ</span><span>${fa(S.jy)}/${fa(p2(S.jm))}/${fa(p2(S.jd))}</span></div>
+    <div class="row"><span class="k">🌍 میلادی</span><span>${g.gy}/${p2(g.gm)}/${p2(g.gd)}</span></div>
+    <div class="row"><span class="k">🌙 قمری</span><span>${h?fa(h.d)+" "+HMONTHS[h.m-1]+" "+fa(h.y):"—"}</span></div>`;
+  if(evs.length)html+='<div class="evs">'+evs.map(e=>
+    `<div class="${e.h?"holi":""}">${e.h?"⛔ ":""}${e.t}</div>`).join("")+"</div>";
+  const el=document.getElementById("details");el.style.display="block";el.innerHTML=html;
+}
+function nav(d){
+  S.jm+=d;
+  if(S.jm>12){S.jm=1;S.jy++;} if(S.jm<1){S.jm=12;S.jy--;}
+  S.jd=Math.min(S.jd,monthLen(S.jy,S.jm));render();
+}
+function goToday(){S={jy:T.jy,jm:T.jm,jd:T.jd};render();}
+
+function copyCard(){
+  const done=()=>{const t=document.getElementById("toast");t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"),1800);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(CARD).then(done).catch(()=>fallback());
+  else fallback();
+  function fallback(){
+    const ta=document.createElement("textarea");ta.value=CARD;document.body.appendChild(ta);
+    ta.select();document.execCommand("copy");ta.remove();done();
+  }
+}
+document.getElementById("week").innerHTML=WDS.map(w=>`<div>${w}</div>`).join("");
+document.getElementById("cardnum").textContent=CARD.replace(/(\d{4})(?=\d)/g,"$1-");
+render();
+</script>
+</body>
+</html>
